@@ -90,6 +90,14 @@ async def list_news(
         alias="status",
         description="Filtrer par statut: pending, verified, fake, unverified",
     ),
+    images_only: bool = Query(
+        default=False,
+        description="Ne retourner que les articles ayant une image",
+    ),
+    shuffle: bool = Query(
+        default=True,
+        description="Mélanger l'ordre des articles aléatoirement à chaque requête (activé par défaut)",
+    ),
     session: AsyncSession = Depends(get_db),
 ):
     """Liste paginée de tous les articles collectés."""
@@ -98,6 +106,8 @@ async def list_news(
         page=page,
         per_page=per_page,
         status=status_filter,
+        images_only=images_only,
+        shuffle=shuffle,
     )
 
     return NewsListResponse(

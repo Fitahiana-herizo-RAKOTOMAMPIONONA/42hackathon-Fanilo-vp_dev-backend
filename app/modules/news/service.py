@@ -151,8 +151,14 @@ class NewsService:
         page: int = 1,
         per_page: int = 20,
         status: NewsStatus | None = None,
+        images_only: bool = False,
+        shuffle: bool = False,
     ) -> tuple[list[NewsArticle], int]:
-        return await NewsRepository.list_all(session, page, per_page, status)
+        return await NewsRepository.list_all(
+            session, page, per_page, status,
+            images_only=images_only,
+            shuffle=shuffle,
+        )
 
     @staticmethod
     async def search_articles(
