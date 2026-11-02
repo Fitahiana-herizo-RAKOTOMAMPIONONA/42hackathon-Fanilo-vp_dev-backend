@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.infrastructure.database.database import engine
 from app.modules.auth.router import auth_router
+from app.modules.editorial.router import editorial_router
 from app.modules.news.router import news_router
 from app.modules.verification.router import verification_router
 
@@ -44,6 +45,11 @@ def create_app() -> FastAPI:
 
     app.include_router(
         verification_router,
+        prefix="/api/v1",
+    )
+
+    app.include_router(
+        editorial_router,
         prefix="/api/v1",
     )
 

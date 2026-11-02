@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import select, func, desc
+from sqlalchemy import select, func, desc, nulls_last
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.news.models import NewsArticle, NewsStatus
@@ -48,6 +48,8 @@ class NewsRepository:
         page: int = 1,
         per_page: int = 20,
         status: NewsStatus | None = None,
+        images_only: bool = False,
+        shuffle: bool = False,
     ) -> tuple[list[NewsArticle], int]:
         query = select(NewsArticle)
         count_query = select(func.count()).select_from(NewsArticle)
@@ -56,7 +58,21 @@ class NewsRepository:
             query = query.where(NewsArticle.status == status)
             count_query = count_query.where(NewsArticle.status == status)
 
-        query = query.order_by(desc(NewsArticle.collected_at))
+        if images_only:
+            query = query.where(
+                NewsArticle.image_url.isnot(None),
+                NewsArticle.image_url != "",
+            )
+            count_query = count_query.where(
+                NewsArticle.image_url.isnot(None),
+                NewsArticle.image_url != "",
+            )
+
+        if shuffle:
+            query = query.order_by(func.random())
+        else:
+            query = query.order_by(desc(NewsArticle.collected_at))
+
         query = query.offset((page - 1) * per_page).limit(per_page)
 
         result = await session.execute(query)

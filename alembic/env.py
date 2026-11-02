@@ -28,6 +28,7 @@ if config.config_file_name is not None:
 from app.core.config import settings
 from app.infrastructure.database.base import Base
 from app.modules.auth.models import User
+from app.modules.editorial.models import EditorialArticle, EditorialReview
 from app.modules.news.models import NewsArticle
 from app.modules.verification.models import VerificationRequest, VerificationSource
 
