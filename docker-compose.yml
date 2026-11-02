@@ -1,0 +1,25 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: fake_news_db
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: fake_news_user
+      POSTGRES_PASSWORD: fake_news_password
+      POSTGRES_DB: fake_news_db
+
+    ports:
+      - "5435:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fake_news_user -d fake_news_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

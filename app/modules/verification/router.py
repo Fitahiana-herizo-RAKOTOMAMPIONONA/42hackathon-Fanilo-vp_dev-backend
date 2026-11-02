@@ -1,0 +1,139 @@
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.infrastructure.database.database import get_db
+from app.modules.auth.dependency import get_current_user
+from app.modules.auth.models import User
+from app.modules.verification.schemas import (
+    VerificationListResponse,
+    VerificationResponse,
+    VerifyRequest,
+)
+from app.modules.verification.service import VerificationService
+
+verification_router = APIRouter(
+    prefix="/verification",
+    tags=["Verification"],
+)
+
+
+@verification_router.post(
+    "/verify",
+    response_model=VerificationResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Vérifier une information / affirmation",
+)
+async def verify_claim(
+    data: VerifyRequest,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Vérifie une affirmation en analysant le web (Google) et les réseaux (Facebook).
+    Extrait les sources pertinentes, évalue la convergence et attribue
+    un verdict avec score de confiance.
+    """
+    verification = await VerificationService.verify_claim(
+        session=session,
+        claim=data.claim,
+        user_id=current_user.id,
+    )
+    return verification
+
+
+@verification_router.get(
+    "/",
+    response_model=VerificationListResponse,
+    summary="Lister mes vérifications",
+)
+async def list_my_verifications(
+    page: int = Query(default=1, ge=1),
+    per_page: int = Query(default=20, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+):
+    """Liste l'historique des vérifications soumises par l'utilisateur connecté."""
+    items, total = await VerificationService.list_by_user(
+        session=session,
+        user_id=current_user.id,
+        page=page,
+        per_page=per_page,
+    )
+    return VerificationListResponse(
+        total=total,
+        page=page,
+        per_page=per_page,
+        verifications=[VerificationResponse.model_validate(v) for v in items],
+    )
+
+
+@verification_router.get(
+    "/all",
+    response_model=VerificationListResponse,
+    summary="Lister toutes les vérifications (historique public)",
+)
+async def list_all_verifications(
+    page: int = Query(default=1, ge=1),
+    per_page: int = Query(default=20, ge=1, le=100),
+    session: AsyncSession = Depends(get_db),
+):
+    """Liste paginée de toutes les vérifications publiques."""
+    items, total = await VerificationService.list_all(
+        session=session,
+        page=page,
+        per_page=per_page,
+    )
+    return VerificationListResponse(
+        total=total,
+        page=page,
+        per_page=per_page,
+        verifications=[VerificationResponse.model_validate(v) for v in items],
+    )
+
+
+@verification_router.get(
+    "/{verification_id}",
+    response_model=VerificationResponse,
+    summary="Détail d'une vérification avec ses sources",
+)
+async def get_verification(
+    verification_id: int,
+    session: AsyncSession = Depends(get_db),
+):
+    """Récupère une vérification spécifique et toutes ses sources analysées."""
+    verification = await VerificationService.get_by_id(
+        session=session,
+        verification_id=verification_id,
+    )
+    if not verification:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Verification not found",
+        )
+    return verification
+
+
+@verification_router.delete(
+    "/{verification_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Supprimer une vérification",
+)
+async def delete_verification(
+    verification_id: int,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+):
+    """Supprime une vérification (réservé à son créateur ou admin)."""
+    user_id_filter = None if current_user.is_admin else current_user.id
+    deleted = await VerificationService.delete(
+        session=session,
+        verification_id=verification_id,
+        user_id=user_id_filter,
+    )
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Verification not found or unauthorized",
+        )
