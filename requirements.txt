@@ -11,6 +11,8 @@ asyncpg==0.32.0
 opencv-python
 deepface
 werkzeug
+groq
+
 beautifulsoup4==4.15.0
 certifi==2026.10.23
 cffi==2.1.1

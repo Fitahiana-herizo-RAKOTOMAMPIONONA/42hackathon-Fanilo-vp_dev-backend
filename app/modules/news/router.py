@@ -1,6 +1,9 @@
+import os
 from types import new_class
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from groq import Groq
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.database.database import get_db
@@ -15,7 +18,6 @@ from app.modules.news.schemas import (
     NewsResponse,
 )
 from app.modules.news.service import NewsService
-
 
 news_router = APIRouter(
     prefix="/news",
@@ -184,4 +186,47 @@ async def delete_news(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Article not found",
+        )
+
+
+class PromptRequest(BaseModel):
+    prompt: str
+
+@news_router.post(
+    "/ask_grok/{prompt}",
+    status_code=status.HTTP_200_OK,
+    summary="Demander une nouvel",
+)
+async def ask_grok(
+    request: PromptRequest
+):
+
+    prompt = request.prompt
+    try:
+        client = Groq(
+            api_key=os.environ.get("GROQ_API_KEY")
+        )
+
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a journalism assistant. Only respond with verified informatino and be concise.",
+                },
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            model="qwen/qwen3.8-27b"
+        )
+        # content = chat_completion.choices[0].message.content
+        return {
+            "prompt": prompt,
+            "response": chat_completion.choices[0].message.content
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=e.__str__()
         )

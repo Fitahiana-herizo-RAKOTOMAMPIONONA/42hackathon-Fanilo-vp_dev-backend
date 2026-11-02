@@ -1,3 +1,9 @@
+# -include .env
+# export GROQ_API_KEY
+-include .env
+
+export GROQ_API_KEY
+
 VENV := venv
 PYTHON := $(VENV)/bin/python
 PIP := $(VENV)/bin/pip

@@ -1,9 +1,15 @@
 from __future__ import annotations
 
+import json
+import os
+from typing import Any
+
 import cv2
+import httpx
 import numpy as np
 from deepface import DeepFace
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from groq import Groq
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.database.database import get_db
@@ -143,13 +149,37 @@ async def delete_verification(
 
 @verification_router.post(
 "/authentifier_images",
-status_code=status.HTTP_204_NO_CONTENT,
+status_code=status.HTTP_200_OK,
 summary="Authentifier une images",
 )
 async def authenticate_img(
         file1: UploadFile = File(..., description="First image"),
         file2: UploadFile = File(..., description="Base image")
 ):
+    async def get_ai_response(prompt: str):
+        client = Groq(
+            api_key=os.environ.get("GROQ_API_KEY")
+        )
+
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Answer the user's request by using the deepface module as a reference.",
+                },
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            model="qwen/qwen3.8-27b"
+        )
+        # content = chat_completion.choices[0].message.content
+        return {
+            "prompt": prompt,
+            "response": chat_completion.choices[0].message.content
+        }
+
     def bytes_to_cv2_img(image_bytes: bytes) -> np.ndarray:
         """Converts uploaded raw file bytes into an OpenCV-compatible BGR image."""
         try:
@@ -175,8 +205,9 @@ async def authenticate_img(
             img2_path=img2,
             enforce_detection=False
         )
-        print(result)
-        return result
+        prompt: str = f"""Explain this ouptut to me: {json.dumps(result)}"""
+        response = await get_ai_response(prompt)
+        return response
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
