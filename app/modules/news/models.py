@@ -1,8 +1,8 @@
 from datetime import datetime
 from enum import Enum
 
+# pyrefly: ignore[missing-import]
 from sqlalchemy import (
-    Boolean,
     DateTime,
     Enum as SQLAlchemyEnum,
     ForeignKey,
@@ -11,7 +11,8 @@ from sqlalchemy import (
     Text,
     func,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+# pyrefly: ignore[missing-import]
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.database.base import Base
 

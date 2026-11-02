@@ -4,6 +4,9 @@ from types import new_class
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from groq import Groq
 from pydantic import BaseModel
+# pyrefly: ignore[missing-import]
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+# pyrefly: ignore[missing-import]
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.database.database import get_db
