@@ -71,3 +71,22 @@ clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	find . -type d -name ".pytest_cache" -exec rm -rf {} +
 	find . -type f -name "*.pyc" -delete
+
+
+docker-build:
+	docker compose build
+
+docker-up:
+	docker compose up -d --build
+
+logs-docker:
+	docker compose logs -f web
+
+logs-db:
+	docker compose logs -f db
+
+shell-docker:
+	docker compose exec web sh
+
+migrate-docker:
+	docker compose exec web alembic upgrade head
