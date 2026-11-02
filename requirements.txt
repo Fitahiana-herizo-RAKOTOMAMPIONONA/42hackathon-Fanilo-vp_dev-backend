@@ -7,7 +7,10 @@ argon2-cffi==25.1.0
 argon2-cffi-bindings==26.1.0
 async-timeout==5.0.1
 asyncpg==0.32.0
-backports.asyncio.runner==1.2.0
+# backports.asyncio.runner==1.2.0
+opencv-python
+deepface
+werkzeug
 beautifulsoup4==4.15.0
 certifi==2026.10.23
 cffi==2.1.1

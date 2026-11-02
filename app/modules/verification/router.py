@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import cv2
 import numpy as np
-from aidetector import create_detector
 from deepface import DeepFace
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -176,6 +175,7 @@ async def authenticate_img(
             img2_path=img2,
             enforce_detection=False
         )
+        print(result)
         return result
     except Exception as e:
         raise HTTPException(
