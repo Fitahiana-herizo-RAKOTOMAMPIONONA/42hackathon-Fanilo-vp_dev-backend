@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+import cv2
+import numpy as np
+from aidetector import create_detector
+from deepface import DeepFace
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.database.database import get_db
@@ -136,4 +140,45 @@ async def delete_verification(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Verification not found or unauthorized",
+        )
+
+@verification_router.post(
+"/authentifier_images",
+status_code=status.HTTP_204_NO_CONTENT,
+summary="Authentifier une images",
+)
+async def authenticate_img(
+        file1: UploadFile = File(..., description="First image"),
+        file2: UploadFile = File(..., description="Base image")
+):
+    def bytes_to_cv2_img(image_bytes: bytes) -> np.ndarray:
+        """Converts uploaded raw file bytes into an OpenCV-compatible BGR image."""
+        try:
+            nparr = np.frombuffer(image_bytes, np.uint8)
+            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            if img is None:
+                raise ValueError("Invalid image file format.")
+            return img
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to process image data: {e.__str__()}"
+            )
+
+    img1_bytes = await file1.read()
+    img2_bytes = await file2.read()
+
+    img1 = bytes_to_cv2_img(img1_bytes)
+    img2 = bytes_to_cv2_img(img2_bytes)
+    try:
+        result = DeepFace.verify(
+            img1_path=img1,
+            img2_path=img2,
+            enforce_detection=False
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"DeepFace verification error: {e.__str__()}"
         )
