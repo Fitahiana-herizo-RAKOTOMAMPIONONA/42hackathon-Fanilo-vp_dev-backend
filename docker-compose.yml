@@ -1,4 +1,49 @@
+# services:
+#   db:
+#     image: postgres:16-alpine
+#     container_name: fake_news_db
+#     restart: unless-stopped
+
+#     environment:
+#       POSTGRES_USER: fake_news_user
+#       POSTGRES_PASSWORD: fake_news_password
+#       POSTGRES_DB: fake_news_db
+
+#     ports:
+#       - "5435:5432"
+
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
+
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U fake_news_user -d fake_news_db"]
+#       interval: 5s
+#       timeout: 5s
+#       retries: 5
+
+# volumes:
+#   postgres_data:
+
 services:
+  web:
+    build: .
+    container_name: fake_news_api
+    restart: unless-stopped
+
+    ports:
+      - "8000:8000"
+
+    env_file:
+      - .env
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
   db:
     image: postgres:16-alpine
     container_name: fake_news_db
